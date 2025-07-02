@@ -1,0 +1,53 @@
+# Node.js related
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Logs
+logs/
+*.log
+backend/logs/
+
+# Build directories
+dist/
+build/
+out/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Generated files
+backend/generated_pdfs/
+*.pdf
+
+# Database files
+*.sqlite
+*.db
+
+# Docker volumes data
+data/db/
+data/mariadb/
+
+# Testing and coverage
+coverage/
+.nyc_output/
+
+# Custom ignore folders
+# Keep backups in source control if they're small, otherwise ignore
+# backups/
+
+# Temporary files
+.tmp/
+tmp/
+temp/ 

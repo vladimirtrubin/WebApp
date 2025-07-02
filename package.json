@@ -1,0 +1,29 @@
+{
+  "name": "timecard-webapp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Timecard Web Application",
+  "main": "index.js",
+  "scripts": {
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "backup": "./scripts/backup.sh",
+    "restore": "./scripts/restore.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "axios": "^1.9.0",
+    "puppeteer": "^24.10.0"
+  }
+}
