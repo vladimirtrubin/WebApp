@@ -10,13 +10,67 @@ This guide was assembled and cross‑checked from three perspectives:
 
 > **Read this first — the one thing that changes everything:** an iPhone Shortcut cannot open a garage door by itself. It can only send a command to a **smart garage opener** that you've already installed. And Apple deliberately treats a garage door as a *security‑sensitive* accessory, which limits how "hands‑free" the **open** step can be. Both points are covered below — don't skip the [Reality Check](#reality-check) and [Security](#security--what-to-actually-do) sections.
 
+> **⚠️ If you have myQ (Chamberlain / LiftMaster):** myQ is a special case — jump to **[If you have myQ](#if-you-have-myq--read-this)** before doing anything else. The standard iOS‑Shortcuts route below does **not** work with a stock myQ unit, and you have a decision to make.
+
+---
+
+## If you have myQ — read this
+
+🔌 **Bad news first, then two real options.**
+
+In **late 2023 Chamberlain shut off third‑party API access** to myQ and **discontinued the myQ Home Bridge** (the hardware that used to add HomeKit). The result for a stock myQ today:
+
+- ❌ **No native Apple HomeKit** — so the iOS Shortcuts "Arrive/Leave/Wi‑Fi → control Garage Door" automations in this guide **have nothing to control**.
+- ❌ **Homebridge / Home Assistant cloud integrations were blocked** — Chamberlain called them "unauthorized."
+- ❌ **myQ's own Siri Shortcuts actions are minimal** and Chamberlain restricts automated *opening* for liability reasons.
+
+So you pick one of these two paths:
+
+### Option A — Use myQ's *own* built‑in geofence (no iPhone Shortcut)
+This is the no‑extra‑hardware route, and it actually does the exact open/close behavior you asked for — just inside the myQ app instead of Apple Shortcuts.
+
+1. Open the **myQ app → your garage door → Settings / Smart Features**.
+2. Enable **geofence / "hands‑free" auto‑open & auto‑close**, and set your **preferred geofence distance** (this is your "0.25 mi" knob).
+3. Allow **Location → Always + Precise** for the myQ app, and keep it running in the background.
+
+**Caveats (be aware before you rely on it):**
+- myQ's hands‑free **auto‑open** is increasingly tied to **myQ Smart Vehicle Access / connected‑car** support, and **geofenced open often requires the paid "myQ" subscription tier**. Auto‑*close* and alerts are generally available more freely.
+- It's **Wi‑Fi‑independent** — myQ geofencing uses GPS, not your home Wi‑Fi. (You lose the "join home Wi‑Fi → open" trigger you originally wanted, but GPS geofence covers the same intent.)
+- You're trusting Chamberlain's cloud and app reliability, which is the thing that broke everyone's integrations in the first place.
+
+➡️ **Choose Option A if** you want it working today with zero hardware and you're OK living inside the myQ app (and possibly its subscription).
+
+### Option B — Add a **ratgdo** board → real HomeKit → the iOS Shortcuts in this guide
+This is the route that gives you **exactly what you originally asked for** (0.25 mi geofence **or** home Wi‑Fi, via Apple Shortcuts), by bypassing Chamberlain's cloud entirely.
+
+1. Buy a **ratgdo** control board (≈ **$30**; ratgdo32 / ratgdo for Chamberlain‑LiftMaster security+2.0 openers).
+2. Wire it to your opener's **wall‑button terminals + door sensor** (a few minutes; community guides + ESPHome firmware).
+3. It exposes your existing myQ opener as a **native HomeKit "Garage Door" accessory** — local control, no myQ cloud.
+4. Now follow **[Setup](#setup) Automations 1–3** below as written: **Arrive ~0.25 mi → Open**, **Join home Wi‑Fi → Open**, **Leave ~0.25 mi → Close**.
+
+**Caveats:**
+- Requires opening the opener's low‑voltage terminals (no mains wiring, but it's a small DIY job). Check your specific opener model is ratgdo‑compatible first.
+- Because it's a *real* HomeKit garage accessory, iOS may still ask you to **confirm the OPEN** (the security‑accessory prompt) — see [Security](#security--what-to-actually-do).
+
+➡️ **Choose Option B if** you specifically want the Apple Shortcuts experience (incl. the Wi‑Fi trigger), local control, and no myQ subscription — and you don't mind a ~$30 board and a few minutes of wiring.
+
+| | Option A: myQ app geofence | Option B: ratgdo + HomeKit |
+|---|---|---|
+| Extra hardware | None | ~$30 board + wiring |
+| iPhone Shortcuts / Wi‑Fi trigger | No (GPS geofence only) | **Yes** — full guide works |
+| Subscription | Often required for auto‑open | None |
+| Relies on Chamberlain cloud | Yes | No (local) |
+| Setup effort | Minutes, in‑app | ~30 min DIY |
+
+> My recommendation for what you described (proximity **or** home Wi‑Fi, your own Shortcut): **Option B** is the only one that delivers all of it. **Option A** is the fastest if you'll accept GPS‑only and possibly a subscription.
+
 ---
 
 ## What you need
 
 | # | Requirement | Notes |
 |---|-------------|-------|
-| 1 | A **smart garage door controller** | e.g. **iSmartGate / ismartgate**, **Meross MSG100/200**, **Tailwind iQ3**, **Refoss**, **Konnected**, or **MyQ** + a HomeKit bridge. Most clamp onto your existing opener and wire to the door sensor. |
+| 1 | A **smart garage door controller** | e.g. **iSmartGate / ismartgate**, **Meross MSG100/200**, **Tailwind iQ3**, **Refoss**, **Konnected**, or a **ratgdo** board. **myQ owners:** stock myQ has no HomeKit anymore — see [If you have myQ](#if-you-have-myq--read-this). Most clamp onto your existing opener and wire to the door sensor. |
 | 2 | iPhone on **iOS 15 or later** | iOS 15+ allows personal automations to "Run Immediately" (no tap) — older iOS always asks. |
 | 3 | **Location Services → Always**, **Precise Location ON** for the controlling app/Home | Geofencing won't fire reliably otherwise. |
 | 4 | Home set in the **Home app** (or the Apple **Contacts** "me" card → home address) | Gives the automations a "Home" location to anchor to. |
@@ -126,10 +180,14 @@ This gives you a window to cancel and avoids redundant commands. Build it in the
 
 ## TL;DR
 
-1. Buy/install a **smart garage opener** (HomeKit‑native is easiest; non‑HomeKit/webhook is what lets *opening* be fully hands‑free).
-2. Build **3 personal automations** in Shortcuts: **Arrive (~0.25 mi) → Open**, **Join home Wi‑Fi → Open**, **Leave (~0.25 mi) → Close**.
-3. Turn **OFF "Ask Before Running"** on each (iOS 15+).
-4. **Automate closing freely; automate opening cautiously** — and keep Precise Location on.
+**For you (myQ):** stock myQ killed HomeKit + third‑party APIs, so the Apple‑Shortcuts route needs one of:
+- **Option A:** turn on **myQ's own geofence** in the myQ app (GPS only, may need a subscription) — fastest, no hardware.
+- **Option B (recommended for what you asked):** add a **~$30 ratgdo board** → your opener becomes a native HomeKit garage door → then build the 3 Shortcuts below. This is the only path that gives you the **0.25 mi geofence _and_ the home‑Wi‑Fi trigger** in your own Shortcut.
+
+**The 3 Shortcuts automations (Option B / any HomeKit opener):**
+1. **Arrive (~0.25 mi) → Open**, 2. **Join home Wi‑Fi → Open**, 3. **Leave (~0.25 mi) → Close**.
+4. Turn **OFF "Ask Before Running"** on each (iOS 15+).
+5. **Automate closing freely; automate opening cautiously** — and keep Precise Location on.
 
 ---
 
@@ -139,3 +197,7 @@ This gives you a window to cancel and avoids redundant commands. Build it in the
 - [Create a new home automation in Shortcuts — Apple Support](https://support.apple.com/guide/shortcuts/create-a-new-home-automation-apd2a290f633/ios)
 - [Setting triggers in Shortcuts (Wi‑Fi) — Apple Support](https://support.apple.com/en-om/guide/shortcuts/apde31e9638b/ios)
 - [8 Useful Ways to Trigger Automations on Your iPhone — How‑To Geek](https://www.howtogeek.com/useful-ways-to-trigger-automations-on-your-iphone/)
+- [Chamberlain shuts off access to myQ's APIs, breaking smart‑home integrations — Slashdot/StaceyOnIoT](https://tech.slashdot.org/story/23/11/08/001241/chamberlain-shuts-off-access-to-myqs-apis-breaking-smart-home-integrations)
+- [Chamberlain myQ blocks Homebridge — 9to5Mac](https://9to5mac.com/2023/11/08/chamberlain-myq-blocks-homebridge/)
+- [myQ HomeKit: native support dropped — ways to add it (ratgdo) — addtohomekit.com](https://www.addtohomekit.com/blog/myq-homekit/)
+- [Connected Car Services & geofence — myQ.com](https://www.myq.com/auto)
