@@ -53,7 +53,7 @@ Single red control wire shared by TX (pulldown) and RX (sense). ASCII view:
 
 
    ESP TX  ───────────────────────────●  gate
-   (D1 / GPIO22)                        │
+   (GPIO16)                             │
                                    AO3400A (TX)
    RED control ───────────────────────●  drain
    wire                                 │
@@ -62,36 +62,36 @@ Single red control wire shared by TX (pulldown) and RX (sense). ASCII view:
    WHITE opener terminal ── GND (common with ESP GND)
 ```
 
-**What each part does**
-- **TX (AO3400A):** ESP TX → gate. When the ESP drives the gate high, the MOSFET pulls the red line to GND = sending a bit. Idle (gate low) releases the line back to 12 V. *(Tip: a 10k gate‑to‑GND pulldown keeps it from floating/triggering during ESP boot — use one of your 10k here if you see the door twitch on power‑up.)*
-- **RX (2N7000):** the red line drives the gate **through a 10k series + 10k divider to GND** so the gate sees a safe voltage, not the full 12 V. Drain → ESP RX with a **10k pull‑up to 3.3 V**. Line at 12 V → MOSFET on → RX reads LOW; line pulled down → MOSFET off → RX reads HIGH. (Inverted — the firmware expects that.)
+**The official BOM is exactly 3× 10 kΩ — and all three live in the RX path.** The TX MOSFET gate connects **straight to GPIO16** (no resistor):
+- **TX (AO3400A):** GPIO16 → gate; drain → red line; source → GND. ESP drives gate high → MOSFET pulls the 12 V line to GND = sending a bit. Idle (gate low) releases the line to 12 V. *(Optional: if the door twitches at ESP power‑up, add a 4th 10k gate‑to‑GND pulldown — this is beyond the official 3‑resistor BOM.)*
+- **RX (2N7000) — where all 3× 10k go:** red line → **R1 (10k) series** → gate; **R2 (10k)** gate → GND (the series+pulldown divider keeps the gate safe, not the full 12 V); drain → ESP RX (GPIO21) with **R3 (10k) pull‑up to 3.3 V**; source → GND. Line at 12 V → MOSFET on → RX reads LOW; line pulled down → MOSFET off → RX reads HIGH. (Inverted — the firmware's UART runs inverted to match.)
 - **Grounds must be common:** ESP GND ↔ opener **white** terminal. Without a shared ground nothing works.
 
-> 📐 **Verify against the authoritative schematic before soldering:** the canonical KiCad drawing is `schematics/ratgdo open source D1 Mini_KiCad.png` in the **Kaldek/rat‑ratgdo** repo (link in Sources). Exact resistor placement there is the reference — match it.
+> 📐 **The authoritative drawing** is `kicad_files/D1 Mini - ESP32` in the **Kaldek/rat‑ratgdo** repo (link in Sources) — open the KiCad/PNG and match resistor placement to it. The topology and 3×10k roles above follow that design.
 
 ---
 
-## ESP32 "D1 Mini" pin map (firmware defaults)
+## ESP32 pin map — use the **v2.0** install
 
-The ESPHome ratgdo config (`v25board_esp32_d1_mini.yaml`) uses these board labels → real GPIO:
+> ⚠️ **Critical:** for **any ESP32 board, flash the ratgdo _v2.0_ install (not v2.5).** Per the project's own board notes, these are the **actual ESP32 GPIO pins for v2.0 regardless of which ESP32 board you use** — only the silkscreen labels differ:
 
-| Function | Board label | ESP32 GPIO | Needed for Sec+2.0? |
-|---|---|---|---|
-| UART **TX** (to opener) | D1 | **GPIO22** | ✅ yes |
-| UART **RX** (from opener) | D2 | **GPIO21** | ✅ yes |
-| Obstruction input | D7 | GPIO23 | optional (comes over protocol anyway) |
-| Status: door | D0 | GPIO26 | optional LED |
-| Status: obstruction | D8 | GPIO5 | optional LED |
-| Dry‑contact open / close / light | D5 / D6 / D3 | GPIO18 / GPIO19 / GPIO17 | ❌ only for non‑Chamberlain openers |
+| Function | **ESP32 GPIO (v2.0)** | Needed for Sec+2.0? |
+|---|---|---|
+| UART **TX** (to opener) | **GPIO16** | ✅ yes |
+| UART **RX** (from opener) | **GPIO21** | ✅ yes |
+| Obstruction input | **GPIO23** | optional (state also comes over the protocol) |
 
-For a Security+ 2.0 opener you only **must** wire **TX (GPIO22)** and **RX (GPIO21)** to the red‑wire circuit, plus **GND**. The dry‑contact pins are for dumb openers and stay unused.
+That's the whole wiring for Security+ 2.0: **GPIO16 (TX)** and **GPIO21 (RX)** into the red‑wire circuit, plus common **GND**. (Dry‑contact open/close/light pins exist only for non‑Chamberlain "dumb" openers and stay unused here.)
+
+- On an **ESP32 D1 Mini**, GPIO16/21/23 are the inner‑row pins (the outer row isn't used).
+- On an **ESP‑WROOM‑32 DevKit**, use the pins literally labeled **GPIO16 / GPIO21 / GPIO23**.
 
 ---
 
 ## Assembly steps
 1. **Unplug the garage opener.**
 2. Build the TX and RX MOSFET circuits on perfboard/breadboard per the schematic; bring out 3 leads: **RED**, **WHITE/GND**, and (shared) **ESP GND**.
-3. Connect **ESP GPIO22 → TX gate**, **ESP GPIO21 → RX drain node**, **ESP 3.3V → RX pull‑up**, **ESP GND → circuit GND**.
+3. Connect **ESP GPIO16 → TX gate**, **ESP GPIO21 → RX drain node**, **ESP 3.3V → RX pull‑up (R3)**, **ESP GND → circuit GND**.
 4. Land the opener side on the screw terminal: **RED → opener red terminal**, **WHITE → opener white terminal** (same terminals the wired wall button uses; you can piggy‑back alongside it).
 5. Power the ESP (USB charger is simplest). Tidy into the enclosure near the motor unit.
 
@@ -99,11 +99,11 @@ For a Security+ 2.0 opener you only **must** wire **TX (GPIO22)** and **RX (GPIO
 
 ## Flash the firmware (no coding required)
 1. On a computer with **Chrome/Edge**, go to the **ESPHome ratgdo web installer** (`ratgdo.github.io/esphome-ratgdo`).
-2. Plug the ESP32 in via USB → **Connect** → choose the **ESP32 / "v2.5i ESP32 d1 mini"** install → flash.
+2. Plug the ESP32 in via USB → **Connect** → choose the **ESP32 _v2.0_ install** (per the caveat above — *not* v2.5 for ESP32) → flash.
 3. Join its Wi‑Fi hotspot, enter your home Wi‑Fi credentials.
 4. Pick the door type **Security+ 2.0** in the board's web UI. Test **Open/Close** from that page — confirm the door responds and shows correct **state**.
 
-*(Alternative: add the board in the ESPHome dashboard using the `v25board_esp32_d1_mini.yaml` package and your own Wi‑Fi/API secrets — same result, more control.)*
+*(Alternative: add the board in the ESPHome dashboard using the ratgdo v2.0 ESP32 package and your own Wi‑Fi/API secrets — same result, more control.)*
 
 ---
 
@@ -142,10 +142,70 @@ Now your **iPhone's location** opens/closes the door **server‑side — no tap,
 | Symptom | Fix |
 |---|---|
 | Door does nothing / no state | Swap your RED/WHITE leads; confirm **common ground** ESP↔opener white; verify door type set to **Security+ 2.0**. |
-| State reads but won't open | TX MOSFET not switching — use the **AO3400A** (not 2N7000) for TX; check GPIO22 → gate. |
+| State reads but won't open | TX MOSFET not switching — use the **AO3400A** (not 2N7000) for TX; check **GPIO16 → gate**. |
 | Door twitches on ESP boot | Add the **10k gate‑to‑GND pulldown** on the TX MOSFET. |
 | RX garbled / flapping | Check the RX divider values and the **10k pull‑up to 3.3 V**; keep wires short. |
 | Interferes with wired wall button | Expected if you lack the 889LM smart panel; ratgdo's emulation shares the bus — usually fine, see ratgdo docs. |
+
+---
+
+## Complete parts list (with where to buy)
+
+Generic, widely‑stocked parts — nothing exotic. Manufacturer part numbers given so you can search any vendor; links are starting points, not the only source.
+
+| # | Part | Qty | Mfr part / spec | Where to buy (search these) | ~Price |
+|---|------|-----|-----------------|------------------------------|--------|
+| 1 | **ESP32 D1 Mini** (LOLIN/WeMos) or any ESP32 DevKit | 1 | ESP32‑based, USB | AliExpress "LOLIN D1 Mini ESP32"; Amazon "WeMos D1 Mini ESP32"; [wemos.cc](https://www.wemos.cc/) | $5–9 |
+| 2 | **2N7000** N‑ch MOSFET (RX) | 1 | onsemi **2N7000** TO‑92 | Mouser/DigiKey "2N7000"; Amazon multipack | $0.10 |
+| 3 | **AO3400A** logic‑level N‑ch MOSFET (TX) | 1 | **AO3400A** SOT‑23 | Mouser/DigiKey "AO3400A"; AliExpress | $0.15 |
+| 4 | **SOT‑23 → DIP adapter** (to breadboard the AO3400A) | 1 | SOT‑23‑3 breakout | Amazon/AliExpress "SOT23 to DIP adapter" | $0.30 |
+| 5 | **10 kΩ resistor**, ¼ W | 3 (get 5+) | 10kΩ 1% | any kit; Mouser/DigiKey "10k 1/4W" | $0.05 |
+| 6 | **3‑position screw terminal**, 5 mm pitch | 1 | KF301‑3P or similar | Amazon/AliExpress "5.08mm screw terminal 3P" | $0.30 |
+| 7 | **Perfboard** (or solderless breadboard to prototype) | 1 | ~3×7 cm protoboard | Amazon/AliExpress "prototype PCB board" | $0.50 |
+| 8 | **Hookup wire** red/white/black, 22–24 AWG | — | stranded | any | — |
+| 9 | **USB 5 V supply + cable** (power the ESP) | 1 | any phone charger | you already own one | — |
+| 10 | *(optional)* **LM2596 buck module** to power from a battery‑backup opener instead of USB | 1 | LM2596 12→5 V | Amazon/AliExpress "LM2596 module" | $1 |
+| 11 | *(optional)* small **project box** | 1 | ~60×40 mm ABS | Amazon "small project enclosure" | $2 |
+
+**Total: ~$10–15** (≈$8 of that is the ESP32). The official ratgdo BOM is items 2–6; everything else is generic build stuff.
+
+> 💡 The two MOSFETs (2N7000 + AO3400A) are the only parts worth buying from a reputable distributor (Mouser/DigiKey/onsemi) — counterfeit AO3400As exist and are the #1 cause of "won't transmit." Get the 2N7000 in a multipack; you'll want spares.
+
+---
+
+## Perfboard layout (top view)
+
+A compact single‑board layout. `Q1` = 2N7000 (RX), `Q2` = AO3400A on adapter (TX). The ESP32 sits on female headers to the left; the 3‑pin screw terminal on the right edge.
+
+```
+   ESP32 D1 Mini                          Screw terminal
+  ┌────────────┐                          ┌───────────┐
+  │ 3V3 ●──────┼──[R3 10k]──┐             │ RED   ●───┼──┐
+  │ GND ●──┐   │            │             │ WHITE ●───┼─┐│
+  │ G21 ●──┼───┼────────────┴──● d        │ (GND)     │ ││
+  │ (RX)   │   │        Q1 ┌──────┐        └───────────┘ ││
+  │ G16 ●──┼───┼──● g ─────┤2N7000│ s ●──┐               ││
+  │ (TX)   │   │           └──────┘      │               ││
+  │        │   │   RED net ●──[R1 10k]●──┤ g (Q1)        ││
+  │        │   │              │          │               ││
+  │        │   │           [R2 10k]      │               ││
+  │        │   │              │          │               ││
+  │  GND rail ●┴──────────────┴──────────┴──● s(Q1) ─────┘│
+  │            │                                          │
+  │  Q2 (TX): G16 ●─ g │ drain ●─ RED net │ source ●─ GND─┘
+  └────────────┘
+```
+
+**Net summary (the part that actually matters — wire to *these*, not the ASCII art):**
+- **RED net** (opener red terminal) ↔ Q2 **drain**, and ↔ **R1**(10k)→ Q1 **gate**.
+- **Q1 gate** ↔ **R2**(10k) → **GND**.  (R1+R2 = the safe divider off the 12 V line.)
+- **Q1 drain** ↔ ESP **GPIO21 (RX)** ↔ **R3**(10k) → **3V3**.
+- **Q1 source** & **Q2 source** ↔ **GND**.
+- **Q2 gate** ↔ ESP **GPIO16 (TX)**.
+- **GND net** ties together: ESP GND, Q1 source, Q2 source, R2, and the opener **WHITE** terminal.
+- Opener **RED**→ screw terminal → RED net; opener **WHITE**→ screw terminal → GND net.
+
+> Prototype on a **solderless breadboard first**, confirm open/close + state in Home Assistant, *then* solder to perfboard. Keep the RED‑net and gate wires short to avoid noise on the serial line.
 
 ---
 
