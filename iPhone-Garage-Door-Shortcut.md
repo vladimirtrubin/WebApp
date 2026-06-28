@@ -12,6 +12,8 @@ This guide was assembled and cross‑checked from three perspectives:
 
 > **⚠️ If you have myQ (Chamberlain / LiftMaster):** myQ is a special case — jump to **[If you have myQ](#if-you-have-myq--read-this)** before doing anything else. The standard iOS‑Shortcuts route below does **not** work with a stock myQ unit, and you have a decision to make.
 
+> **🎯 Want fully clickless (no confirmation tap, phone in pocket)?** See **[`Clickless-Geofencing.md`](./Clickless-Geofencing.md)** for the ranked no‑tap solutions (Home Assistant + ratgdo, Tailwind iQ3, the HomeKit dummy‑switch trick, connected‑car). Note: stock **myQ + iPhone alone cannot do clickless open** — that doc explains why and what does work.
+
 ---
 
 ## If you have myQ — read this
