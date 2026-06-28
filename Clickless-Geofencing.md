@@ -50,6 +50,8 @@ action:
 
 **Trade‑off:** you run a small always‑on HA box and do ~30 min of setup (wiring + YAML). After that it's hands‑off forever.
 
+> 🔧 **Want to build the ratgdo yourself instead of buying one?** Full DIY engineering guide (ESP32 + two MOSFETs talking the Security+ 2.0 serial bus, schematic, BOM, pin map, firmware): **[`DIY-ratgdo-Build.md`](./DIY-ratgdo-Build.md)**.
+
 ---
 
 ## 🥈 #2 — Tailwind iQ3 (clickless with **no server, no code** — easiest hardware route)
