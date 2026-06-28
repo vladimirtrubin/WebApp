@@ -87,6 +87,8 @@ If you drive a **Tesla, or a Nissan/Infiniti/GM (and other) myQ‑partner vehicl
 
 **Trade‑off:** only works in/near that specific car, may need the **myQ subscription**, and it's car‑presence not phone‑presence (no good for arriving on foot/bike).
 
+> 💡 **Tesla owners who don't want the myQ subscription:** skip myQ entirely and use **Tesla HomeLink** (the car triggers your opener's radio directly, with built‑in Auto‑Open/Auto‑Close geofence — no subscription). Full walkthrough: **[`Tesla-HomeLink-Bypass-myQ.md`](./Tesla-HomeLink-Bypass-myQ.md)**.
+
 ---
 
 ## Quick chooser
