@@ -91,6 +91,41 @@ If you drive a **Tesla, or a Nissan/Infiniti/GM (and other) myQ‑partner vehicl
 
 ---
 
+## Defeating the iPhone confirmation prompt ("Ask Before Running" / the "Open? Yes/No" notification)
+
+There are **two different prompts** people lump together. Know which one you're fighting:
+
+### Prompt 1 — the generic "Ask Before Running" (any personal automation)
+**Easy to remove.** On **iOS 15+**, when you build a personal automation, the last screen has **"Ask Before Running"** — toggle it **OFF** and confirm **Run Immediately**. Most actions then fire silently. No trick needed.
+
+### Prompt 2 — the HomeKit **secure‑accessory** confirmation (garage doors, locks, alarms)
+**This one you cannot turn off directly.** Apple *always* asks before a Shortcut/automation **directly opens** a garage door or lock — even with "Run Immediately" on. It's a deliberate security gate on entry‑granting accessories. To get a silent open you must **stop the Shortcut from touching the secure accessory directly.** Three ways that actually work:
+
+**A) Dummy‑switch indirection (all‑Apple, no extra cloud)**
+A smart **plug/switch is not a "secure" accessory**, so toggling it never prompts. Chain it:
+1. **Automation A (presence):** *When I arrive → turn Switch X ON.* → silent.
+2. **Automation B (accessory‑triggered):** *When Switch X turns ON → set Garage Door to Open.* → **silent**, because automations triggered by *another accessory's state* skip the secure‑accessory prompt (only *presence/time*‑triggered secure actions get gated).
+3. Mirror for leaving: *arrive‑zone exit → Switch X OFF → Garage closes.*
+- You need a real cheap plug **or** a virtual switch (via Homebridge/Home Assistant). ⚠️ Behavior has historically been **iOS‑version dependent** — re‑test after major iOS updates.
+
+**B) Non‑HomeKit / webhook opener (no prompt at all)**
+If the door is triggered by an **HTTP request** instead of a HomeKit accessory, iOS sees no "secure accessory" and never prompts. Use a **`Get Contents of URL`** action pointed at:
+- **ratgdo's local HTTP/MQTT API**, a **Home Assistant webhook**, **Tailwind's** local/api endpoint, **Konnected**, etc.
+- Example: personal automation *Arrive → Get Contents of URL → `POST http://<ratgdo-or-HA>/garage/open`* → opens silently.
+
+**C) Skip the iPhone Shortcut entirely (cleanest)**
+Move the trigger off the phone: a **Home Assistant zone automation** (#1 above) fires **server‑side** — there is no Shortcut and therefore **no Apple prompt** anywhere in the loop. The car/HA does it; your phone just reports location.
+
+> **For your Tesla setup this is already solved:** **HomeLink doesn't use an iPhone Shortcut at all** — the car opens the door over radio with its own Auto‑Open geofence, so **there is no confirmation prompt to defeat.** If you go the HomeLink route, you can ignore this whole section.
+
+| Prompt you're hitting | Fix |
+|---|---|
+| Generic "Ask Before Running" | Toggle **OFF → Run Immediately** (iOS 15+) |
+| HomeKit garage/lock confirmation | **A** dummy‑switch · **B** webhook/HTTP opener · **C** Home Assistant zone automation |
+| Using **Tesla HomeLink** | N/A — no Shortcut, no prompt |
+
+---
+
 ## Quick chooser
 
 | Want… | Pick |
