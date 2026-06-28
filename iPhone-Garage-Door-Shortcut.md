@@ -40,6 +40,8 @@ This is the no‑extra‑hardware route, and it actually does the exact open/clo
 
 ➡️ **Choose Option A if** you want it working today with zero hardware and you're OK living inside the myQ app (and possibly its subscription).
 
+📄 **Full step‑by‑step Option A walkthrough:** see **[`myQ-Option-A-Setup.md`](./myQ-Option-A-Setup.md)** — screen‑by‑screen location permissions, geofence range, arrive/leave behavior, testing, and troubleshooting.
+
 ### Option B — Add a **ratgdo** board → real HomeKit → the iOS Shortcuts in this guide
 This is the route that gives you **exactly what you originally asked for** (0.25 mi geofence **or** home Wi‑Fi, via Apple Shortcuts), by bypassing Chamberlain's cloud entirely.
 
