@@ -1,0 +1,18 @@
+# deps / build
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# env — never commit keys
+.env
+.env.*
+!.env.example
+
+# persisted debate transcripts (point COLLOQUY_RUNS_DIR at a NAS in prod)
+runs/*.json
+
+# misc
+.DS_Store
+npm-debug.log*
