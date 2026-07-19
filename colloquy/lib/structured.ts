@@ -53,7 +53,7 @@ export const callStructured: StructuredGenerate = async function callStructured<
             max_tokens: maxTokens,
             system,
             messages: attemptMessages,
-            output_config: { format: zodOutputFormat(schema, schemaName) },
+            output_config: { format: zodOutputFormat(schema) },
           },
           { signal },
         );
