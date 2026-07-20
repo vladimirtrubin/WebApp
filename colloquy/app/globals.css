@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-chamber-bg text-chamber-ink antialiased;
+}
+
+/* Keyboard focus: always visible, never removed. */
+:focus-visible {
+  outline: 2px solid #d4a72c;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Streaming caret + subtle activity pulse — only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .caret::after {
+    content: "▍";
+    margin-left: 1px;
+    animation: caret-blink 1s steps(2, start) infinite;
+    color: var(--accent, #d4a72c);
+  }
+  @keyframes caret-blink {
+    to {
+      visibility: hidden;
+    }
+  }
+  .speaking-ring {
+    animation: speaking-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes speaking-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 1px var(--accent, #d4a72c);
+    }
+    50% {
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #d4a72c) 55%, transparent);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret::after {
+    content: "▍";
+    margin-left: 1px;
+    color: var(--accent, #d4a72c);
+  }
+  .speaking-ring {
+    box-shadow: 0 0 0 2px var(--accent, #d4a72c);
+  }
+}
