@@ -78,10 +78,21 @@ The consensus threshold, moderator prompts, and UI all adapt to the panel size
 automatically. Set `isLiving: true` for any living person — the UI adds an
 "inferred" flag to their card.
 
+## Browsing past sessions
+
+Every run is persisted as JSON the moment each phase completes, so even
+adjourned or failed sessions leave a record. The **Past sessions** panel on the
+page lists them (newest first) and reopens any transcript read-only. The same
+data is available raw:
+
+- `GET /api/colloquy/runs` — summaries (`id`, `topic`, `status`, `outcome`, …)
+- `GET /api/colloquy/runs/:id` — one full `Run` envelope
+
 ## Architecture
 
 ```
 app/api/colloquy/route.ts   thin SSE endpoint: validate → stream → abort on disconnect
+app/api/colloquy/runs/      read-only archive endpoints over the same storage
 lib/orchestrator.ts         phase state machine; emits typed events (schemas/events.ts)
 lib/structured.ts           streaming structured call: JSON schema + zod + 1 repair retry
 lib/anthropic.ts            SDK client, abort-aware exponential backoff, clean errors

@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColloquyEvent } from "../schemas/events";
 import { MODERATOR_ID } from "../schemas/events";
-import type { AgentMeta, RunStatus } from "../schemas/run";
+import { RunSchema } from "../schemas/run";
+import type { AgentMeta, Run, RunStatus, RunSummary } from "../schemas/run";
 import type { ModeratorRuling } from "../schemas/moderator";
 import type { Verdict } from "../schemas/verdict";
+import { isQualifyingMajority } from "../lib/consensus";
 import { extractPartialStringField } from "../lib/partial-json";
+import { Archive } from "../components/Archive";
 import { TopicEditor } from "../components/TopicEditor";
 import { AgentCard, type AgentCardState } from "../components/AgentCard";
 import {
@@ -47,9 +50,30 @@ export default function Page() {
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [archive, setArchive] = useState<RunSummary[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const rawBuffers = useRef<Record<string, string>>({});
+
+  const refreshArchive = useCallback(async () => {
+    try {
+      const res = await fetch("/api/colloquy/runs");
+      if (res.ok) setArchive((await res.json()) as RunSummary[]);
+    } catch {
+      // The archive is a convenience; never let it break the session view.
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshArchive();
+  }, [refreshArchive]);
+
+  useEffect(() => {
+    if (status === "completed" || status === "adjourned" || status === "error") {
+      void refreshArchive();
+    }
+  }, [status, refreshArchive]);
 
   const patchCard = useCallback(
     (id: string, patch: Partial<AgentCardState>) => {
@@ -65,6 +89,7 @@ export default function Page() {
     (event: ColloquyEvent) => {
       switch (event.type) {
         case "run_started":
+          setActiveRunId(event.runId);
           setAgents(event.agents);
           setCards(
             Object.fromEntries(event.agents.map((a) => [a.id, emptyCard()])),
@@ -225,6 +250,82 @@ export default function Page() {
     abortRef.current?.abort();
   }, []);
 
+  /** Rehydrate the whole session view from a persisted transcript. */
+  const loadRun = useCallback((run: Run) => {
+    const panelIds = run.agents.map((a) => a.id);
+    setTopic(run.topic);
+    setMaxRounds(run.maxRounds);
+    setAgents(run.agents);
+    setActiveRunId(run.id);
+    setError(run.error);
+    setPhaseLabel(null);
+    setModeratorLive(null);
+    setVerdict(run.verdict);
+    // A file stuck at "running" means the server died mid-run; show it as adjourned.
+    setStatus(run.status === "running" ? "adjourned" : run.status);
+
+    const loadedEntries: TranscriptEntry[] = run.analyses.map((analysis) => ({
+      kind: "analysis" as const,
+      analysis,
+    }));
+    let lastRuling: { ruling: ModeratorRuling; qualifies: boolean } | null = null;
+    for (const round of run.rounds) {
+      for (const turn of round.turns) loadedEntries.push({ kind: "turn", turn });
+      if (round.ruling) {
+        lastRuling = {
+          ruling: round.ruling,
+          qualifies: isQualifyingMajority(round.ruling, panelIds),
+        };
+        loadedEntries.push({ kind: "ruling", ...lastRuling });
+      }
+    }
+    setEntries(loadedEntries);
+    setRuling(lastRuling);
+
+    const nextCards: Record<string, AgentCardState> = {};
+    for (const meta of run.agents) {
+      const lastTurn = [...run.rounds]
+        .reverse()
+        .flatMap((r) => r.turns)
+        .find((t) => t.agentId === meta.id);
+      const analysis = run.analyses.find((a) => a.agentId === meta.id);
+      const latest = lastTurn ?? analysis;
+      nextCards[meta.id] = {
+        ...emptyCard(),
+        status: latest ? "spoken" : "waiting",
+        position: latest?.position ?? null,
+        moved: lastTurn?.moved ?? false,
+        movedReason: lastTurn?.moved ? lastTurn.movedReason : null,
+        stanceTag: latest?.stanceTag ?? null,
+        confidence: latest?.confidence ?? null,
+        inMajority: lastRuling
+          ? lastRuling.ruling.majorityAgentIds.includes(meta.id)
+          : null,
+      };
+    }
+    setCards(nextCards);
+  }, []);
+
+  const openRun = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/colloquy/runs/${id}`);
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error ?? `Could not load run (${res.status})`);
+        }
+        loadRun(RunSchema.parse(await res.json()));
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Could not load the stored run.",
+        );
+      }
+    },
+    [loadRun],
+  );
+
   const running = status === "running";
 
   return (
@@ -284,6 +385,13 @@ export default function Page() {
       {verdict && <VerdictPanel verdict={verdict} agents={agents} />}
 
       <Transcript entries={entries} agents={agents} />
+
+      <Archive
+        runs={archive}
+        disabled={running}
+        activeRunId={activeRunId}
+        onOpen={(id) => void openRun(id)}
+      />
     </div>
   );
 }

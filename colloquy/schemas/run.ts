@@ -28,6 +28,16 @@ export type Round = z.infer<typeof RoundSchema>;
 export const RunStatusSchema = z.enum(["running", "completed", "adjourned", "error"]);
 export type RunStatus = z.infer<typeof RunStatusSchema>;
 
+/** Compact listing entry served by GET /api/colloquy/runs. */
+export interface RunSummary {
+  id: string;
+  topic: string;
+  status: RunStatus;
+  createdAt: string;
+  roundsUsed: number;
+  outcome: "consensus" | "qualified_majority" | "dissensus" | null;
+}
+
 /** The persisted transcript envelope — one JSON file per run under ./runs/. */
 export const RunSchema = z
   .object({
