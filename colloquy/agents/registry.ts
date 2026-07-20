@@ -4,12 +4,29 @@ import { augustine } from "./personas/augustine";
 import { calvin } from "./personas/calvin";
 import { bonhoeffer } from "./personas/bonhoeffer";
 import { geisler } from "./personas/geisler";
+import { chuckSmith } from "./personas/chuck-smith";
+import { spurgeon } from "./personas/spurgeon";
+import { missler } from "./personas/missler";
+import { oswaldChambers } from "./personas/oswald-chambers";
+import { joelKirtley } from "./personas/joel-kirtley";
 
 /**
  * Data-driven roster. To add or swap a persona, create a file under
  * agents/personas/ and list it here — no orchestrator changes needed.
+ * The consensus threshold and prompts adapt to the panel size automatically.
  */
-const PANEL: AgentPersona[] = [wesleyHuff, augustine, calvin, bonhoeffer, geisler];
+const PANEL: AgentPersona[] = [
+  wesleyHuff,
+  augustine,
+  calvin,
+  bonhoeffer,
+  geisler,
+  chuckSmith,
+  spurgeon,
+  missler,
+  oswaldChambers,
+  joelKirtley,
+];
 
 export function getPanel(): AgentPersona[] {
   const seen = new Set<string>();

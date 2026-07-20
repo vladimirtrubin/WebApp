@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getPanel } from "../agents/registry";
+import { majorityThreshold } from "../lib/consensus";
 import { runColloquy } from "../lib/orchestrator";
 import type { StructuredGenerate, StructuredCallOptions } from "../lib/structured";
 import type { StorageAdapter } from "../lib/storage";
@@ -26,6 +27,7 @@ class MemoryStorage implements StorageAdapter {
 
 const PANEL = getPanel();
 const IDS = PANEL.map((p) => p.id);
+const THRESHOLD = majorityThreshold(IDS.length);
 
 function fakeGenerate({
   majorityInRound,
@@ -72,14 +74,16 @@ function fakeGenerate({
         );
         const round = match ? Number(match[1]) : 1;
         const reached = round >= majorityInRound;
+        // A genuine qualifying cluster is exactly THRESHOLD agents; one short otherwise.
+        const clusterSize = reached ? THRESHOLD : THRESHOLD - 1;
         return {
           round,
           agentCount: IDS.length,
-          majorityThreshold: 3,
-          majorityAgentIds: reached ? IDS.slice(0, 3) : IDS.slice(0, 2),
+          majorityThreshold: THRESHOLD,
+          majorityAgentIds: IDS.slice(0, clusterSize),
           compatibilityRationale: "Canned rationale.",
           scriptureGrounded: reached,
-          dissentingAgentIds: reached ? IDS.slice(3) : IDS.slice(2),
+          dissentingAgentIds: IDS.slice(clusterSize),
           majorityReached: reached,
           continueDebate: !reached,
         } as T;
